@@ -4,6 +4,7 @@ import "../components/styles/nprogress.css";
 import { Router } from "next/router";
 import { ApolloProvider } from "@apollo/client";
 import withData from "../lib/withData";
+import { Toaster } from "react-hot-toast";
 
 Router.events.on("routeChangeStart", () => NProgress.start());
 Router.events.on("routeChangeComplete", () => NProgress.done());
@@ -16,6 +17,7 @@ function MyApp({ Component, pageProps, apollo }) {
       <Page>
         <Component {...pageProps} />
       </Page>
+      <Toaster />
     </ApolloProvider>
   );
 }

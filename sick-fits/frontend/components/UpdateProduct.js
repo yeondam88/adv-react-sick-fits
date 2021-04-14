@@ -1,79 +1,79 @@
 import React from "react";
-import useForm from "../lib/useForm";
-import Form from "./styles/Form";
 import gql from "graphql-tag";
-import { useMutation } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
+import Form from "./styles/Form";
 import DisplayError from "./ErrorMessage";
-import { ALL_PRODUCTS_QUERY } from "./Products";
 import Router from "next/router";
+import useForm from "../lib/useForm";
 import toast from "react-hot-toast";
 
-const CREATE_PRODUCT_MUTATION = gql`
-  mutation CREATE_PRODUCT_MUTATION(
-    $name: String!
-    $description: String!
-    $price: Int!
-    $image: Upload
-    $status: String
-  ) {
-    createProduct(
-      data: {
-        name: $name
-        description: $description
-        price: $price
-        status: $status
-        photo: { create: { image: $image, altText: $name } }
-      }
-    ) {
+const SINGLE_PRODUCT_QUERY = gql`
+  query SINGLE_PRODUCT_QUERY($id: ID!) {
+    Product(where: { id: $id }) {
       id
-      price
-      description
       name
+      description
+      price
     }
   }
 `;
 
-export default function CreateProduct() {
-  const { inputs, handleChange, clearForm } = useForm({
-    image: "",
-    name: "Nice shoes",
-    price: 1130,
-    description: "best shoes",
+const UPDATE_PRODUCT_MUTATION = gql`
+  mutation UPDATE_PRODUCT_MUTATION(
+    $id: ID!
+    $name: String!
+    $description: String!
+    $price: Int!
+  ) {
+    updateProduct(
+      id: $id
+      data: { name: $name, description: $description, price: $price }
+    ) {
+      id
+      name
+      description
+      price
+    }
+  }
+`;
+
+export default function UpdateProduct({ id }) {
+  const { data, error, loading } = useQuery(SINGLE_PRODUCT_QUERY, {
+    variables: {
+      id,
+    },
   });
 
-  const [createProduct, { loading, error }] = useMutation(
-    CREATE_PRODUCT_MUTATION,
-    {
-      variables: inputs,
-      refetchQueries: [{ query: ALL_PRODUCTS_QUERY }],
-    }
-  );
+  const [
+    updateProduct,
+    { data: updateData, error: updateError, loading: updateLoading },
+  ] = useMutation(UPDATE_PRODUCT_MUTATION);
+  const { inputs, handleChange, clearForm } = useForm(data?.Product);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await createProduct();
+    const res = await updateProduct({
+      variables: {
+        id,
+        name: inputs.name,
+        description: inputs.description,
+        price: inputs.price,
+      },
+    });
     clearForm();
     console.log(res);
-    toast.success("Created!!");
+    toast.success("Update!");
     await Router.push({
-      pathname: `/product/${res.data.createProduct.id}`,
+      pathname: `/product/${res.data.updateProduct.id}`,
     });
   };
 
+  if (loading) return <p>Loading...</p>;
+
   return (
     <Form onSubmit={handleSubmit}>
-      <DisplayError error={error} />
-      <fieldset disabled={loading} aria-busy={loading}>
-        <label htmlFor="name">
-          Image
-          <input
-            required
-            type="file"
-            id="image"
-            name="image"
-            onChange={handleChange}
-          />
-        </label>
+      <DisplayError error={error || updateError} />
+      <fieldset disabled={updateLoading} aria-busy={updateLoading}>
         <label htmlFor="name">
           name
           <input
@@ -110,7 +110,7 @@ export default function CreateProduct() {
           />
         </label>
 
-        <button type="submit">+ Add Product</button>
+        <button type="submit">🚀 Update Product</button>
       </fieldset>
     </Form>
   );
