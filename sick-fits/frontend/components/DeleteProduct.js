@@ -13,6 +13,10 @@ const DELETE_SINGLE_PRODUCT = gql`
   }
 `;
 
+function update(cache, payload) {
+  cache.evict(cache.identify(payload.data.deleteProduct));
+}
+
 export default function DeleteProduct({ id, children }) {
   const [deleteProduct, { data, error, loading }] = useMutation(
     DELETE_SINGLE_PRODUCT,
@@ -20,13 +24,14 @@ export default function DeleteProduct({ id, children }) {
       variables: {
         id,
       },
-      refetchQueries: [{ query: ALL_PRODUCTS_QUERY }],
+      update,
     }
   );
 
   return (
     <button
       type="button"
+      disabled={loading}
       onClick={async () => {
         if (confirm("Are you sure you want to delete this item?")) {
           // call delete mutation
